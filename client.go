@@ -175,16 +175,18 @@ func (c *Client) Stat(path string) (os.FileInfo, error) {
 	dir, base := filepath.Split(path)
 	if dir != "/" {
 		// All folders in / are mounts, so skip this unless we're not in the root
-		secret, err = c.Logical().List(path)
+		Debugf("stat: list %q", dir)
+		secret, err = c.Logical().List(dir)
 		if err != nil {
 			return nil, err
 		}
 		if secret != nil {
 			for _, key := range secret.Data["keys"].([]interface{}) {
-				if key.(string) == base {
+				name := strings.TrimRight(key.(string), "/")
+				if name == base {
 					return &secretInfo{
 						Secret: secret,
-						Path:   filepath.Clean(filepath.Join(strings.TrimRight(path, "/"), key.(string))),
+						Path:   filepath.Clean(filepath.Join(dir, name)),
 						Key:    key.(string),
 					}, nil
 				}

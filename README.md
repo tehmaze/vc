@@ -5,20 +5,16 @@ Vault Command Line (CLI) Client for manipulating secrets inside Vault
 ## Environment Variables
 
 vc respects the following environment settings:
-
-   VAULT_ADDR        Vault server address
-   VAULT_CACERT      Path to a PEM-encoded CA cert file to use to verify the
-                     Vault server SSL certificate.
-   VAULT_CAPATH      Path to a directory of PEM-encoded CA cert files to verify
-                     the Vault server SSL certificate. If VAULT_CACERT is
-                     specified, its value will take precedence.
-   VAULT_TOKEN       Vault access token
-   VAULT_TOKEN_FILE  Vault access token file
+ * `VAULT_ADDR`   Vault server address
+ * `VAULT_CACERT` Path to a PEM-encoded CA cert file to use to verify the Vault server SSL certificate.
+ * `VAULT_CAPATH` Path to a directory of PEM-encoded CA cert files to verify the Vault server SSL certificate. If `VAULT_CACERT` is specified, its value will take precedence.
+ * `VAULT_TOKEN` Vault access token
+ * `VAULT_TOKEN_FILE` Vault access token file
 
 If no `VAULT_TOKEN` is set, `VAULT_TOKEN_FILE` will try:
 
-   $HOME/.vault-token
-   /etc/vault-client/token
+    $HOME/.vault-token
+    /etc/vault-client/token
 
 # Commands
 
@@ -41,20 +37,21 @@ Show the contents of a secret.
 
 Open an interactive editor for manipulating secrets or creating new secrets.
 
-  Usage: vc edit <secret path>
+    Usage: vc edit <secret path>
 
 
 ## Command file
 
 Store or retrieve files.
 
-   Usage: vc file <get|put> <secret path> <file path>
 
-   Options:
-     -f	force overwrite
-     -i	ignore missing key
-     -m string
-       	output mode (for put) (default 0600)
+    Usage: vc file <get|put> <secret path> <file path>
+
+    Options:
+      -f	force overwrite
+      -i	ignore missing key
+      -m string
+        	output mode (for put) (default 0600)
 
 In get mode, if the file at path already exists, vc will prompt the user to
 overwrite if the terminal is interactive and otherwise throw an error, unless
@@ -72,22 +69,22 @@ marker (`__TYPE__`) of "file".
 
 List secrets.
 
-   Usage: vc [<options>] ls [<secret path>]
+    Usage: vc [<options>] ls [<secret path>]
 
-   Options:
-     -1	list in compact format
-     -R	recursively list subdirectories encountered
-     -l	list in long format
+    Options:
+      -1	list in compact format
+      -R	recursively list subdirectories encountered
+      -l	list in long format
 
 
 ## Command mv
 
 Move secrets.
 
-   Usage: vc [<options>] mv <source secret> <target secret>
+    Usage: vc [<options>] mv <source secret> <target secret>
 
-   Options:
-     -f	force overwrite
+    Options:
+      -f	force overwrite
 
 If the secret at the destination path exists, vc will prompt the user to
 overwrite if the terminal is interactive and otherwise throw an error, unless
@@ -98,10 +95,10 @@ force overwrite is enabled.
 
 Remove secrets.
 
-   Usage: vc rm <secret path>
+    Usage: vc rm <secret path>
 
-   Options:
-     -f	force removal
+    Options:
+      -f	force removal
 
 
 ## Command template
@@ -109,13 +106,13 @@ Remove secrets.
 Render a template containing Vault secrets. The default render engine is
 text/template, see https://golang.org/pkg/text/template/
 
-   Usage: vc template [<options>] <file>
+    Usage: vc template [<options>] <file>
 
-   Options:
-     -m string
-       	output mode (default 0600)
-     -o string
-       	output (default: stdout)
+    Options:
+      -m string
+        	output mode (default 0600)
+      -o string
+        	output (default: stdout)
 
 The template has a function "secret", which allows for looking up secret
 values stored in Vault. The function expects a path to a generic secret and

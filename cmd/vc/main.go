@@ -129,11 +129,9 @@ secrets are missing or if there is an error contacting Vault.
 Type key
 
 Only partial support is implemented for the magic __TYPE__ key which allows
-for typed values. This should work similarly to the __TYPE__ key available
-in booking/secrets-materialiser.
+for typed values.
 
 Available types:
- dbconf   Substructure is a key-value dictionary with db.conf encoding
  file     Base64 encoded file in key "contents"
  json     Substructure is a key-value dictionary with json encoding
 */

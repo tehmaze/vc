@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"strings"
 
@@ -33,9 +34,11 @@ type ShellCommand struct {
 	app *cli.CLI
 	ui  cli.Ui
 
-	fs    *flag.FlagSet
-	force bool
-	user  string
+	fs                  *flag.FlagSet
+	force               bool
+	user                string
+	host                string
+	hostInfoProblematic bool
 }
 
 func (cmd *ShellCommand) Help() string {
@@ -174,7 +177,20 @@ exit:
 }
 
 func (cmd *ShellCommand) prompt() string {
-	return fmt.Sprintf("\x1b[1;32m%s\x1b[0m@vault \x1b[1m%s\x1b[1;31m> \x1b[0m ", cmd.user, cmd.c.Path)
+	cmd.host = "vault"
+	if !cmd.hostInfoProblematic {
+		leader, err := cmd.c.Sys().Leader()
+		if err != nil {
+			// Since we can't query the leader status, give up on trying again
+			cmd.hostInfoProblematic = true
+		} else {
+			if u, err := url.Parse(leader.LeaderAddress); err == nil {
+				cmd.host = strings.Split(u.Hostname(), ".")[0]
+			}
+		}
+	}
+	return fmt.Sprintf("\x1b[1;32m%s\x1b[0m@%s \x1b[1m%s\x1b[1;31m>\x1b[0m ",
+		cmd.user, cmd.host, cmd.c.Path)
 }
 
 func (cmd *ShellCommand) expandArgs(args []string) string {

@@ -1,5 +1,10 @@
 # vc
 
+[![GoDoc](https://godoc.org/github.com/tehmaze/vc?status.svg)](https://godoc.org/github.com/tehmaze/vc)
+[![Build Status](https://travis-ci.org/tehmaze/vc.svg?branch=master)](https://travis-ci.org/tehmaze/vc)
+[![GitHub downloads](https://img.shields.io/github/downloads/tehmaze/vc/total.svg)](https://github.com/tehmaze/vc)
+[![GitHub tag](https://img.shields.io/github/tag/tehmaze/vc.svg)](https://github.com/tehmaze/vc)
+
 Vault Command Line (CLI) Client for manipulating secrets inside Vault
 
 ## Environment Variables

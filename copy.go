@@ -21,31 +21,31 @@ func (cmd *CopyCommand) Help() string {
 
 func (cmd *CopyCommand) Run(args []string) int {
 	if err := cmd.fs.Parse(args); err != nil {
-		return 1
+		return SyntaxError
 	}
 	if args = cmd.fs.Args(); len(args) != 2 {
-		return cli.RunResultHelp
+		return Help
 	}
 
 	if args[0] == args[1] {
-		return 0
+		return Success
 	}
 
 	client, err := cmd.Client()
 	if err != nil {
 		cmd.ui.Error(err.Error())
-		return 2
+		return ClientError
 	}
 
 	// Read secret at old path
 	secret, err := client.Logical().Read(args[0])
 	if err != nil {
 		cmd.ui.Error(err.Error())
-		return 1
+		return ServerError
 	}
 	if secret == nil {
 		cmd.ui.Error(fmt.Sprintf("no secret at %q", args[0]))
-		return 1
+		return SyntaxError
 	}
 
 	// Check if secret at new path exists, unless force is enabled
@@ -53,15 +53,15 @@ func (cmd *CopyCommand) Run(args []string) int {
 		oldSecret, oerr := client.Logical().Read(args[1])
 		if oerr != nil {
 			cmd.ui.Error(oerr.Error())
-			return 1
+			return SyntaxError
 		}
 		if oldSecret != nil {
 			if !IsTerminal(os.Stdout.Fd()) {
 				cmd.ui.Error(fmt.Sprintf("secret at %q already exists", args[1]))
-				return 1
+				return SystemError
 			}
 			if !confirmf("secret at %s already exists, overwrite?", args[1]) {
-				return 0
+				return Success
 			}
 		}
 	}
@@ -69,10 +69,10 @@ func (cmd *CopyCommand) Run(args []string) int {
 	// Write secret at new path
 	if _, err = client.Logical().Write(args[1], secret.Data); err != nil {
 		cmd.ui.Error(err.Error())
-		return 1
+		return ServerError
 	}
 
-	return 0
+	return Success
 }
 
 func (cmd *CopyCommand) Synopsis() string {

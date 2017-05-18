@@ -20,36 +20,36 @@ func (cmd *DeleteCommand) Help() string {
 
 func (cmd *DeleteCommand) Run(args []string) int {
 	if err := cmd.fs.Parse(args); err != nil {
-		return 1
+		return SyntaxError
 	}
 	if args = cmd.fs.Args(); len(args) != 1 {
-		return cli.RunResultHelp
+		return Help
 	}
 
 	client, err := cmd.Client()
 	if err != nil {
 		cmd.ui.Error(err.Error())
-		return 2
+		return ClientError
 	}
 
 	if !cmd.force {
 		secret, err := client.Logical().Read(args[0])
 		if err != nil {
 			cmd.ui.Error(err.Error())
-			return 1
+			return ServerError
 		}
 		if secret == nil {
 			cmd.ui.Error(fmt.Sprintf("secret at %q does not exist", args[0]))
-			return 1
+			return SyntaxError
 		}
 	}
 
 	if _, err := client.Logical().Delete(args[0]); err != nil {
 		cmd.ui.Error(err.Error())
-		return 1
+		return ServerError
 	}
 
-	return 0
+	return Success
 }
 
 func (cmd *DeleteCommand) Synopsis() string {

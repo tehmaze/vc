@@ -10,15 +10,24 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"regexp"
 	"strings"
 
 	"github.com/hashicorp/vault/api"
 	"github.com/mitchellh/cli"
 )
 
+// Return code constants
+const (
+	Success int = iota
+	SyntaxError
+	ClientError
+	ServerError
+	SystemError
+	CodecError
+	Help = cli.RunResultHelp
+)
+
 var (
-	validToken = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 	tokenFiles = []string{
 		os.ExpandEnv("$HOME/.vault-token"),
 		"/etc/vault-client/token",

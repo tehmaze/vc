@@ -28,15 +28,15 @@ func (cmd *CatCommand) Help() string {
 
 func (cmd *CatCommand) Run(args []string) int {
 	if err := cmd.fs.Parse(args); err != nil {
-		return 1
+		return SyntaxError
 	}
 	if args = cmd.fs.Args(); len(args) < 1 {
-		return cli.RunResultHelp
+		return Help
 	}
 
 	if mode, err := strconv.ParseInt(cmd.mod, 8, 32); err != nil {
 		cmd.ui.Error("error: invalid mode: " + err.Error())
-		return 1
+		return SyntaxError
 	} else {
 		cmd.mode = os.FileMode(mode)
 	}
@@ -44,13 +44,13 @@ func (cmd *CatCommand) Run(args []string) int {
 	c, err := cmd.Client()
 	if err != nil {
 		cmd.ui.Error(err.Error())
-		return 2
+		return ClientError
 	}
 
 	// Expand globs (if any)
 	if args, err = cmd.globs(c, args); err != nil {
 		cmd.ui.Error(fmt.Sprintf("error: %v", err))
-		return 1
+		return SyntaxError
 	}
 
 	buf := new(bytes.Buffer)
@@ -59,11 +59,11 @@ func (cmd *CatCommand) Run(args []string) int {
 		s, err := c.Logical().Read(path)
 		if err != nil {
 			cmd.ui.Error(err.Error())
-			return 3
+			return ServerError
 		}
 		if s == nil {
 			cmd.ui.Error(fmt.Sprintf("error: %s: secret not found", path))
-			return 1
+			return SyntaxError
 		}
 		var ret int
 		if cmd.key == "" {
@@ -81,7 +81,7 @@ func (cmd *CatCommand) Run(args []string) int {
 			// Default, keyed item
 			ret = cmd.runKeyed(path, s, buf)
 		}
-		if ret != 0 {
+		if ret != Success {
 			return ret
 		}
 	}
@@ -95,10 +95,10 @@ func (cmd *CatCommand) Run(args []string) int {
 
 	if _, err = io.Copy(cmd, buf); err != nil {
 		cmd.ui.Error(fmt.Sprintf("error: %v", err))
-		return 1
+		return SystemError
 	}
 
-	return 0
+	return Success
 }
 
 // globs expands one or more paths containing glob(s)
@@ -122,20 +122,20 @@ func (cmd *CatCommand) run(path string, s *api.Secret, buf io.Writer) int {
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(s.Data); err != nil {
 		cmd.ui.Error(fmt.Sprintf("error: %s: key %q: %v", path, cmd.key, err))
-		return 1
+		return CodecError
 	}
 
-	return 0
+	return Success
 }
 
 func (cmd *CatCommand) runKeyed(path string, s *api.Secret, buf io.Writer) int {
 	val, ok := s.Data[cmd.key]
 	if !ok {
 		if cmd.ignoreMissing {
-			return 0
+			return Success
 		}
 		cmd.ui.Error(fmt.Sprintf("error: %s: key %q not found\n", path, cmd.key))
-		return 1
+		return SyntaxError
 	}
 
 	var err error
@@ -149,20 +149,20 @@ func (cmd *CatCommand) runKeyed(path string, s *api.Secret, buf io.Writer) int {
 	}
 	if err != nil {
 		cmd.ui.Error(fmt.Sprintf("error: %s: key %q: %v", path, cmd.key, err))
-		return 1
+		return SyntaxError
 	}
 
-	return 0
+	return Success
 }
 
 func (cmd *CatCommand) runTyped(path string, s *api.Secret, buf io.Writer) int {
 	encoderType, ok := s.Data[CodecTypeKey].(string)
 	if !ok {
 		if cmd.ignoreMissing {
-			return 0
+			return Success
 		}
 		cmd.ui.Error(fmt.Sprintf("error: %s: key %s not found; maybe supply a key with -k?\n", path, CodecTypeKey))
-		return 1
+		return SyntaxError
 	}
 
 	delete(s.Data, CodecTypeKey)
@@ -170,21 +170,21 @@ func (cmd *CatCommand) runTyped(path string, s *api.Secret, buf io.Writer) int {
 	c, err := CodecFor(encoderType)
 	if err != nil {
 		cmd.ui.Error(err.Error())
-		return 1
+		return CodecError
 	}
 
 	var b []byte
 	if b, err = c.Marshal(path, s.Data); err != nil {
 		cmd.ui.Error(err.Error())
-		return 1
+		return SystemError
 	}
 
 	if _, err = buf.Write(b); err != nil {
 		cmd.ui.Error(err.Error())
-		return 1
+		return SystemError
 	}
 
-	return 0
+	return Success
 }
 
 func (cmd *CatCommand) Synopsis() string {

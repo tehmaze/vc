@@ -52,9 +52,14 @@ func (w *safeOutputWriter) Close() error {
 		defer func() {
 			w.file = nil
 		}()
-		return w.file.Close()
+		if err := w.file.Close(); err != nil {
+			return err
+		}
+		Debugf("writer: rename %s to %s", w.temp, w.name)
+		return os.Rename(w.temp, w.name)
 	}
 
+	Debug("writer: nothing was written")
 	return nil
 }
 
@@ -70,6 +75,7 @@ func (w *safeOutputWriter) maybeOpenWriter() (err error) {
 	defer w.mutex.Unlock()
 
 	if w.file == nil {
+		Debugf("writer: creating temporary file for %s", w.name)
 		dir, base := filepath.Split(w.name)
 		base = "." + base + "."
 
@@ -77,8 +83,10 @@ func (w *safeOutputWriter) maybeOpenWriter() (err error) {
 			return
 		}
 		if err = w.file.Chmod(w.mode); err != nil {
+			Debugf("writer: chmod %s failed: %v", w.file.Name(), err)
 			return
 		}
+		Debugf("writer: using temporary file %s", w.file.Name())
 		w.temp = w.file.Name()
 	}
 

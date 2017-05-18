@@ -21,8 +21,8 @@ func (c jsonCodec) Marshal(_ string, data map[string]interface{}) ([]byte, error
 }
 
 func (c jsonCodec) Unmarshal(p []byte) (map[string]interface{}, error) {
-	data := make(map[string]interface{})
-	if err := json.Unmarshal(p, data); err != nil {
+	var data map[string]interface{}
+	if err := json.Unmarshal(p, &data); err != nil {
 		return nil, err
 	}
 	return data, nil

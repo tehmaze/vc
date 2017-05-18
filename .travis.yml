@@ -1,0 +1,18 @@
+language: go
+
+go:
+  - 1.6
+  - 1.7
+  - release
+  - tip
+
+install:
+ - go get github.com/chzyer/readline
+ - go get github.com/hashicorp/vault
+ - go get github.com/hashicorp/vault/api
+ - go get github.com/mitchellh/cli
+ - go get gopkg.in/yaml.v2
+
+script:
+ - go test -v ./...
+ - go build -v ./cmd/vc

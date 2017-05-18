@@ -80,11 +80,11 @@ func (cmd *baseCommand) Client() (*Client, error) {
 				if berr != nil {
 					return nil, fmt.Errorf("unable to read token: %v", berr)
 				}
-				if validToken.Match(b) {
-					Debugf("client: using VAULT_TOKEN_FILE %s", tokenFile)
-					cmd.c.SetToken(strings.TrimSpace(string(b)))
-					break
-				}
+				Debugf("client: using VAULT_TOKEN_FILE %s", tokenFile)
+				cmd.c.SetToken(strings.TrimSpace(string(b)))
+				break
+			} else if serr != nil {
+				Debugf("client: error VAULT_TOKEN_FILE %s: %v", tokenFile, serr)
 			}
 		}
 	}

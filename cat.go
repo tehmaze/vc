@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/vault/api"
 	"github.com/mitchellh/cli"
@@ -55,8 +56,8 @@ func (cmd *CatCommand) Run(args []string) int {
 
 	buf := new(bytes.Buffer)
 	for _, path := range args {
-		Debugf("cat: read %q", path)
-		s, err := c.Logical().Read(path)
+		Debugf("cat: read %q", strings.TrimPrefix(path, "/"))
+		s, err := c.Logical().Read(strings.TrimPrefix(path, "/"))
 		if err != nil {
 			cmd.ui.Error(err.Error())
 			return ServerError

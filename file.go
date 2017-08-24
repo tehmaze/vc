@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/vault/api"
 	"github.com/mitchellh/cli"
@@ -87,7 +88,7 @@ func (cmd *FileCommand) runGet(path, name string) (err error) {
 	}
 
 	var secret *api.Secret
-	if secret, err = client.Logical().Read(path); err != nil {
+	if secret, err = client.Logical().Read(strings.TrimPrefix(path, "/")); err != nil {
 		return
 	}
 	if secret == nil {
@@ -140,7 +141,7 @@ func (cmd *FileCommand) runPut(path, name string) (err error) {
 	}
 
 	if !cmd.force {
-		if secret, _ := client.Logical().Read(path); secret != nil {
+		if secret, _ := client.Logical().Read(strings.TrimPrefix(path, "/")); secret != nil {
 			if !IsTerminal(os.Stdout.Fd()) || name == "" || name == "-" {
 				return fmt.Errorf("secret at %q already exists", path)
 			}
@@ -161,7 +162,7 @@ func (cmd *FileCommand) runPut(path, name string) (err error) {
 	b64.Close()
 	breaker.Close()
 
-	_, err = client.Logical().Write(path, map[string]interface{}{
+	_, err = client.Logical().Write(strings.TrimPrefix(path, "/"), map[string]interface{}{
 		CodecTypeKey: "file",
 		"contents":   out.String(),
 	})

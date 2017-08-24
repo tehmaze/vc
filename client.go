@@ -159,7 +159,7 @@ func (c *Client) Stat(path string) (os.FileInfo, error) {
 	}
 
 	// Check if the path is a file
-	secret, err := c.Logical().Read(path)
+	secret, err := c.Logical().Read(strings.TrimPrefix(path, "/"))
 	if err != nil {
 		return nil, err
 	}
@@ -175,8 +175,8 @@ func (c *Client) Stat(path string) (os.FileInfo, error) {
 	dir, base := filepath.Split(path)
 	if dir != "/" {
 		// All folders in / are mounts, so skip this unless we're not in the root
-		Debugf("stat: list %q", dir)
-		secret, err = c.Logical().List(dir)
+		Debugf("stat: list %q", strings.TrimPrefix(dir, "/"))
+		secret, err = c.Logical().List(strings.TrimPrefix(dir, "/"))
 		if err != nil {
 			return nil, err
 		}
@@ -220,7 +220,7 @@ func (c *Client) Stat(path string) (os.FileInfo, error) {
 
 // ReadDir mimicks an ioutil.ReadDir call on Vault; permission errors are muted
 func (c *Client) ReadDir(path string) ([]os.FileInfo, error) {
-	Debugf("readdir: %q", path)
+	Debugf("readdir: %q", strings.TrimPrefix(path, "/"))
 	var infos []os.FileInfo
 
 	// Resolve path
@@ -257,7 +257,7 @@ func (c *Client) ReadDir(path string) ([]os.FileInfo, error) {
 	}
 
 	// Check secrets
-	secret, err := c.Logical().List(path)
+	secret, err := c.Logical().List(strings.TrimPrefix(path, "/"))
 	if err != nil {
 		return nil, err
 	}

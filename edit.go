@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	yaml "gopkg.in/yaml.v2"
@@ -74,7 +75,7 @@ func (cmd *EditCommand) Run(args []string) int {
 			cmd.ui.Warn("no data was saved")
 			return 0
 		}
-		if _, err = client.Logical().Delete(args[0]); err != nil {
+		if _, err = client.Logical().Delete(strings.TrimPrefix(args[0], "/")); err != nil {
 			cmd.ui.Error(err.Error())
 			return 1
 		}
@@ -82,7 +83,7 @@ func (cmd *EditCommand) Run(args []string) int {
 		return 0
 	}
 
-	if _, err = client.Logical().Write(args[0], data); err != nil {
+	if _, err = client.Logical().Write(strings.TrimPrefix(args[0], "/"), data); err != nil {
 		cmd.ui.Error(err.Error())
 		return 1
 	}
@@ -131,7 +132,7 @@ again:
 // readSecret loads a secret, marshals it to YaML and saves it to a temporary file
 func (cmd *EditCommand) readSecret(client *Client, path string) (name string, exists bool, err error) {
 	var secret *api.Secret
-	if secret, err = client.Logical().Read(path); err != nil {
+	if secret, err = client.Logical().Read(strings.TrimPrefix(path, "/")); err != nil {
 		return
 	}
 

@@ -106,8 +106,12 @@ func (cmd *CatCommand) Run(args []string) int {
 func (cmd *CatCommand) globs(c *Client, patterns []string) (expanded []string, err error) {
 	for _, pattern := range patterns {
 		var infos []os.FileInfo
-		if infos, err = c.Glob(pattern); err != nil {
-			return
+		if c.isGlob(pattern) {
+			if infos, err = c.Glob(pattern); err != nil {
+				return
+			}
+		} else {
+			expanded = append(expanded, pattern)
 		}
 		if len(infos) > 0 {
 			for _, info := range infos {

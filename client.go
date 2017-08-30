@@ -159,7 +159,7 @@ func (c *Client) Stat(path string) (os.FileInfo, error) {
 	}
 
 	// Check if the path is a file
-	secret, err := c.Logical().Read(strings.TrimPrefix(path, "/"))
+	secret, err := c.Logical().Read(strings.TrimLeft(path, "/"))
 	if err != nil {
 		return nil, err
 	}
@@ -278,6 +278,10 @@ func globExpression(pattern string) string {
 	return strings.Replace(strings.Replace(pattern, "?", ".", -1), "*", ".*", -1)
 }
 
+func (c *Client) isGlob(pattern string) bool {
+	return strings.ContainsAny(pattern, "*?")
+}
+
 // Glob is a shortcut to list generic secrets and mounts by glob pattern. The
 // wildcards "*" and "?" are supported. Currently only globbing the base of the
 // path is supported, globbing on directory names is not.
@@ -285,7 +289,7 @@ func (c *Client) Glob(pattern string) ([]os.FileInfo, error) {
 	Debugf("glob: %q", pattern)
 
 	// Fast path, no globbing required
-	if !strings.ContainsAny(pattern, "*?") {
+	if !c.isGlob(pattern) {
 		info, err := c.Stat(pattern)
 		return []os.FileInfo{info}, err
 	}

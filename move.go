@@ -39,7 +39,7 @@ func (cmd *MoveCommand) Run(args []string) int {
 	}
 
 	// Read secret at old path
-	secret, err := client.Logical().Read(strings.TrimPrefix(args[0], "/"))
+	secret, err := client.Logical().Read(strings.TrimLeft(args[0], "/"))
 	if err != nil {
 		cmd.ui.Error(err.Error())
 		return 1
@@ -51,7 +51,7 @@ func (cmd *MoveCommand) Run(args []string) int {
 
 	// Check if secret at new path exists, unless force is enabled
 	if !cmd.force {
-		oldSecret, oerr := client.Logical().Read(strings.TrimPrefix(args[1], "/"))
+		oldSecret, oerr := client.Logical().Read(strings.TrimLeft(args[1], "/"))
 		if oerr != nil {
 			cmd.ui.Error(oerr.Error())
 			return 1
@@ -68,13 +68,13 @@ func (cmd *MoveCommand) Run(args []string) int {
 	}
 
 	// Write secret at new path
-	if _, err = client.Logical().Write(strings.TrimPrefix(args[1], "/"), secret.Data); err != nil {
+	if _, err = client.Logical().Write(strings.TrimLeft(args[1], "/"), secret.Data); err != nil {
 		cmd.ui.Error(err.Error())
 		return 1
 	}
 
 	// Delete secret at old path
-	if _, err = client.Logical().Delete(strings.TrimPrefix(args[0], "/")); err != nil {
+	if _, err = client.Logical().Delete(strings.TrimLeft(args[0], "/")); err != nil {
 		cmd.ui.Error(err.Error())
 		return 1
 	}

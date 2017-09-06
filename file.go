@@ -88,7 +88,7 @@ func (cmd *FileCommand) runGet(path, name string) (err error) {
 	}
 
 	var secret *api.Secret
-	if secret, err = client.Logical().Read(strings.TrimPrefix(path, "/")); err != nil {
+	if secret, err = client.Logical().Read(strings.TrimLeft(path, "/")); err != nil {
 		return
 	}
 	if secret == nil {
@@ -141,7 +141,7 @@ func (cmd *FileCommand) runPut(path, name string) (err error) {
 	}
 
 	if !cmd.force {
-		if secret, _ := client.Logical().Read(strings.TrimPrefix(path, "/")); secret != nil {
+		if secret, _ := client.Logical().Read(strings.TrimLeft(path, "/")); secret != nil {
 			if !IsTerminal(os.Stdout.Fd()) || name == "" || name == "-" {
 				return fmt.Errorf("secret at %q already exists", path)
 			}
@@ -162,7 +162,7 @@ func (cmd *FileCommand) runPut(path, name string) (err error) {
 	b64.Close()
 	breaker.Close()
 
-	_, err = client.Logical().Write(strings.TrimPrefix(path, "/"), map[string]interface{}{
+	_, err = client.Logical().Write(strings.TrimLeft(path, "/"), map[string]interface{}{
 		CodecTypeKey: "file",
 		"contents":   out.String(),
 	})

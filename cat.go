@@ -56,8 +56,8 @@ func (cmd *CatCommand) Run(args []string) int {
 
 	buf := new(bytes.Buffer)
 	for _, path := range args {
-		Debugf("cat: read %q", strings.TrimPrefix(path, "/"))
-		s, err := c.Logical().Read(strings.TrimPrefix(path, "/"))
+		Debugf("cat: read %q", strings.TrimLeft(path, "/"))
+		s, err := c.Logical().Read(strings.TrimLeft(path, "/"))
 		if err != nil {
 			cmd.ui.Error(err.Error())
 			return ServerError

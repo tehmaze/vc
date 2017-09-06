@@ -97,7 +97,7 @@ func (cmd *TemplateCommand) executeTemplate(t *template.Template) (content strin
 	// For each of the secret paths, lookup the secret
 	for path, kv := range cmd.lookup {
 		var secret *api.Secret
-		if secret, err = client.Logical().Read(strings.TrimPrefix(path, "/")); err != nil {
+		if secret, err = client.Logical().Read(strings.TrimLeft(path, "/")); err != nil {
 			return
 		}
 		if secret == nil {

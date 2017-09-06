@@ -34,7 +34,7 @@ func (cmd *DeleteCommand) Run(args []string) int {
 	}
 
 	if !cmd.force {
-		secret, err := client.Logical().Read(strings.TrimPrefix(args[0], "/"))
+		secret, err := client.Logical().Read(strings.TrimLeft(args[0], "/"))
 		if err != nil {
 			cmd.ui.Error(err.Error())
 			return ServerError
@@ -45,7 +45,7 @@ func (cmd *DeleteCommand) Run(args []string) int {
 		}
 	}
 
-	if _, err := client.Logical().Delete(strings.TrimPrefix(args[0], "/")); err != nil {
+	if _, err := client.Logical().Delete(strings.TrimLeft(args[0], "/")); err != nil {
 		cmd.ui.Error(err.Error())
 		return ServerError
 	}

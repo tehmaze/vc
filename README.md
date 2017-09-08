@@ -119,18 +119,29 @@ text/template, see https://golang.org/pkg/text/template/
       -o string
         	output (default: stdout)
 
-The template has a function "secret", which allows for looking up secret
-values stored in Vault. The function expects a path to a generic secret and
-a key.
-
-Example:
-
-    The value for key foo at secret/test is: {{secret "secret/test" "foo"}}
 
 The render engine will first evaluate the template file and retrieve all
 desired secret paths and keys. Next, it will contact Vault and fetch the
 requested secrets. The render engine will report a fatal error if any of the
 secrets are missing or if there is an error contacting Vault.
+
+### Function `decode`
+
+Retrieves an encoded secret stored in Vault.
+
+Example:
+
+    We can have any {{decode "secret/test.json"}} type.
+
+
+### Function `secret`
+
+Allows for looking up secret values stored in Vault. The function expects a
+path to a generic secret and a key.
+
+Example:
+
+    The value for key foo at secret/test is: {{secret "secret/test" "foo"}}
 
 
 # Type key
@@ -138,7 +149,7 @@ secrets are missing or if there is an error contacting Vault.
 Only partial support is implemented for the magic `__TYPE__` key which allows
 for typed values.
 
-Available types:
+Builtin types:
  * `file` Base64 encoded file in key "contents"
  * `json` Substructure is a key-value dictionary with JSON encoding
  * `yaml` Substructure is a key-value dictionary with YaML encoding

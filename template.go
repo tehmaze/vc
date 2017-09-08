@@ -22,10 +22,15 @@ type TemplateCommand struct {
 	fs     *flag.FlagSet
 	mod    string
 	lookup map[string]map[string]string
+	decode map[string]string
 }
 
 func (cmd *TemplateCommand) Help() string {
 	return "Usage: vc template [<options>] <file>\n\nOptions:\n" + defaults(cmd.fs)
+}
+
+func (cmd *TemplateCommand) Synopsis() string {
+	return "render a template"
 }
 
 func (cmd *TemplateCommand) Run(args []string) int {
@@ -71,13 +76,15 @@ func (cmd *TemplateCommand) parseTemplate(name string) (*template.Template, erro
 
 	// Parse template, add a function "secret"
 	return template.New(name).Funcs(template.FuncMap{
+		"decode": cmd.templateDecode,
 		"secret": cmd.templateSecret,
 	}).Parse(string(b))
 }
 
 func (cmd *TemplateCommand) executeTemplate(t *template.Template) (content string, err error) {
-	// Prepare lookup table
+	// Prepare lookup tables
 	cmd.lookup = make(map[string]map[string]string)
+	cmd.decode = make(map[string]string)
 
 	// Execute template: first run; here we make an inventory of what secrets are
 	// required. The secret lookups will be replaced by placeholders in the
@@ -94,6 +101,53 @@ func (cmd *TemplateCommand) executeTemplate(t *template.Template) (content strin
 		return
 	}
 
+	if content, err = cmd.executeTemplateDecodes(client, content); err != nil {
+		return
+	}
+	if content, err = cmd.executeTemplateSecrets(client, content); err != nil {
+		return
+	}
+
+	return
+}
+
+func (cmd *TemplateCommand) executeTemplateDecodes(client *Client, input string) (content string, err error) {
+	content = input
+
+	for path, k := range cmd.decode {
+		var secret *api.Secret
+		if secret, err = client.Logical().Read(path); err != nil {
+			return
+		}
+		if secret == nil || secret.Data == nil {
+			return "", fmt.Errorf("decode %s: not found", path)
+		}
+
+		encoderType, ok := secret.Data[CodecTypeKey].(string)
+		if !ok {
+			return "", fmt.Errorf("decode %s: key %s not found", path, CodecTypeKey)
+		}
+		delete(secret.Data, CodecTypeKey)
+
+		c, err := CodecFor(encoderType)
+		if err != nil {
+			return "", err
+		}
+
+		var b []byte
+		if b, err = c.Marshal(path, secret.Data); err != nil {
+			return "", err
+		}
+
+		content = strings.Replace(content, k, string(b), -1)
+	}
+
+	return
+}
+
+func (cmd *TemplateCommand) executeTemplateSecrets(client *Client, input string) (content string, err error) {
+	content = input
+
 	// For each of the secret paths, lookup the secret
 	for path, kv := range cmd.lookup {
 		var secret *api.Secret
@@ -101,8 +155,7 @@ func (cmd *TemplateCommand) executeTemplate(t *template.Template) (content strin
 			return
 		}
 		if secret == nil {
-			err = fmt.Errorf("%s: secret not found\n", path)
-			return
+			return "", fmt.Errorf("secret %s: not found", path)
 		}
 
 		// For each of the secret keys, lookup the value
@@ -110,13 +163,19 @@ func (cmd *TemplateCommand) executeTemplate(t *template.Template) (content strin
 			if v, ok := secret.Data[k].(string); ok {
 				content = strings.Replace(content, placeholder, v, -1)
 			} else {
-				err = fmt.Errorf("%s: secret key %q not found\n", path, k)
-				return
+				return "", fmt.Errorf("secret %s: key %q not found", path, k)
 			}
 		}
 	}
 
 	return
+}
+
+func (cmd *TemplateCommand) templateDecode(path string) string {
+	if _, ok := cmd.decode[path]; !ok {
+		cmd.decode[path] = cmd.randomIdentifier("decode")
+	}
+	return cmd.decode[path]
 }
 
 func (cmd *TemplateCommand) templateSecret(path string, key string) string {
@@ -126,18 +185,17 @@ func (cmd *TemplateCommand) templateSecret(path string, key string) string {
 		kv = cmd.lookup[path]
 	}
 
-	kv[key] = cmd.randomIdentifier()
+	if _, ok = kv[key]; !ok {
+		kv[key] = cmd.randomIdentifier("string")
+	}
+
 	return kv[key]
 }
 
-func (cmd *TemplateCommand) randomIdentifier() string {
+func (cmd *TemplateCommand) randomIdentifier(t string) string {
 	r := make([]byte, 8)
 	io.ReadFull(rand.Reader, r)
-	return fmt.Sprintf("_VAULT_SECRET_%x_", r)
-}
-
-func (cmd *TemplateCommand) Synopsis() string {
-	return "render a template"
+	return fmt.Sprintf("_VAULT_%s_%x_", strings.ToUpper(t), r)
 }
 
 func TemplateCommandFactory(ui cli.Ui) cli.CommandFactory {

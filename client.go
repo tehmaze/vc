@@ -160,7 +160,8 @@ func (c *Client) Stat(path string) (os.FileInfo, error) {
 
 	// Check if the path is a file
 	secret, err := c.Logical().Read(strings.TrimLeft(path, "/"))
-	if err != nil {
+	// Directories would get a permission denied error on Read(). So ignore it.
+	if err != nil && !isPermissionDenied(err) {
 		return nil, err
 	}
 	if secret != nil {
@@ -172,25 +173,20 @@ func (c *Client) Stat(path string) (os.FileInfo, error) {
 	}
 
 	// Check if the path is a folder
-	dir, base := filepath.Split(path)
+	dir, _ := filepath.Split(path)
 	if dir != "/" {
 		// All folders in / are mounts, so skip this unless we're not in the root
-		Debugf("stat: list %q", strings.TrimLeft(dir, "/"))
-		secret, err = c.Logical().List(strings.TrimLeft(dir, "/"))
+		Debugf("stat: list %q", strings.TrimLeft(path, "/"))
+		secret, err = c.Logical().List(strings.TrimLeft(path, "/"))
 		if err != nil {
 			return nil, err
 		}
 		if secret != nil {
-			for _, key := range secret.Data["keys"].([]interface{}) {
-				name := strings.TrimRight(key.(string), "/")
-				if name == base {
-					return &secretInfo{
-						Secret: secret,
-						Path:   filepath.Clean(filepath.Join(dir, name)),
-						Key:    key.(string),
-					}, nil
-				}
-			}
+			return &secretInfo{
+				Secret: secret,
+				Path:   strings.TrimRight(filepath.Clean(path), "/") + "/",
+				Key:    strings.TrimRight(filepath.Clean(path), "/") + "/",
+			}, nil
 		}
 	}
 

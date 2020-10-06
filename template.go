@@ -10,7 +10,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"reflect"
 	"strconv"
 	"strings"
 
@@ -211,7 +210,7 @@ func (cmd *TemplateCommand) executeTemplateNested(client *Client, input string) 
 						}
 						mydata = mydata[nestedkey].(map[string]interface{})
 					} else {
-						if reflect.TypeOf(mydata[nestedkey]).Kind() == reflect.String {
+						if _, ok := mydata[nestedkey].(string); ok {
 							content = strings.Replace(content, placeholder, mydata[nestedkey].(string), -1)
 						} else {
 							return "", fmt.Errorf("nested %s: key %q is not a string", path, nestedkey)

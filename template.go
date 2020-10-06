@@ -3,6 +3,7 @@ package vc
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"html/template"
@@ -78,6 +79,7 @@ func (cmd *TemplateCommand) parseTemplate(name string) (*template.Template, erro
 	return template.New(name).Funcs(template.FuncMap{
 		"decode": cmd.templateDecode,
 		"secret": cmd.templateSecret,
+		"nested": cmd.templateNested,
 	}).Parse(string(b))
 }
 
@@ -105,6 +107,9 @@ func (cmd *TemplateCommand) executeTemplate(t *template.Template) (content strin
 		return
 	}
 	if content, err = cmd.executeTemplateSecrets(client, content); err != nil {
+		return
+	}
+	if content, err = cmd.executeTemplateNested(client, content); err != nil {
 		return
 	}
 
@@ -160,11 +165,61 @@ func (cmd *TemplateCommand) executeTemplateSecrets(client *Client, input string)
 
 		// For each of the secret keys, lookup the value
 		for k, placeholder := range kv {
-			if v, ok := secret.Data[k].(string); ok {
-				content = strings.Replace(content, placeholder, v, -1)
-			} else {
-				return "", fmt.Errorf("secret %s: key %q not found", path, k)
+			if strings.HasPrefix(placeholder, "_VAULT_STRING_") {
+				if v, ok := secret.Data[k].(string); ok {
+					content = strings.Replace(content, placeholder, v, -1)
+				} else {
+					return "", fmt.Errorf("secret %s: key %q not found", path, k)
+				}
 			}
+		}
+	}
+
+	return
+}
+
+func (cmd *TemplateCommand) executeTemplateNested(client *Client, input string) (content string, err error) {
+	content = input
+
+	// For each of the secret paths, lookup the secret
+	for path, kv := range cmd.lookup {
+		var secret *api.Secret
+		if secret, err = client.Logical().Read(strings.TrimLeft(path, "/")); err != nil {
+			return
+		}
+		if secret == nil {
+			return "", fmt.Errorf("nested %s: not found", path)
+		}
+
+		// For each of the secret keys, lookup the value
+		for k, placeholder := range kv {
+			if strings.HasPrefix(placeholder, "_VAULT_NESTED_") {
+				keys := strings.Split(k, ".")
+
+				var nestedData map[string]interface{}
+				if err := json.Unmarshal([]byte(secret.Data[keys[0]].(string)), &nestedData); err != nil {
+					return "", fmt.Errorf("nested %s/%s: failed to parse JSON", path, keys[0])
+				}
+
+				mydata := nestedData
+				levels := len(keys) - 1
+				for _, nestedkey := range keys[1:] {
+					if levels > 1 {
+						if mydata[nestedkey] == nil {
+							return "", fmt.Errorf("nested %s: key %q not found", path, nestedkey)
+						}
+						mydata = mydata[nestedkey].(map[string]interface{})
+					} else {
+						if _, ok := mydata[nestedkey].(string); ok {
+							content = strings.Replace(content, placeholder, mydata[nestedkey].(string), -1)
+						} else {
+							return "", fmt.Errorf("nested %s: key %q is not a string", path, nestedkey)
+						}
+					}
+					levels--
+				}
+			}
+
 		}
 	}
 
@@ -187,6 +242,22 @@ func (cmd *TemplateCommand) templateSecret(path string, key string) string {
 
 	if _, ok = kv[key]; !ok {
 		kv[key] = cmd.randomIdentifier("string")
+	}
+
+	return kv[key]
+}
+
+func (cmd *TemplateCommand) templateNested(path string, key string) string {
+	// keys := strings.Split(key, ".")
+
+	kv, ok := cmd.lookup[path]
+	if !ok {
+		cmd.lookup[path] = make(map[string]string)
+		kv = cmd.lookup[path]
+	}
+
+	if _, ok = kv[key]; !ok {
+		kv[key] = cmd.randomIdentifier("nested")
 	}
 
 	return kv[key]

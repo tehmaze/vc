@@ -198,7 +198,9 @@ func (cmd *TemplateCommand) executeTemplateNested(client *Client, input string) 
 				keys := strings.Split(k, ".")
 
 				var nestedData map[string]interface{}
-				json.Unmarshal([]byte(secret.Data[keys[0]].(string)), &nestedData)
+				if err := json.Unmarshal([]byte(secret.Data[keys[0]].(string)), &nestedData); err != nil {
+					return "", fmt.Errorf("nested %s/%s: failed to parse JSON", path, keys[0])
+				}
 
 				mydata := nestedData
 				levels := len(keys) - 1

@@ -122,7 +122,7 @@ func (cmd *TemplateCommand) executeTemplateDecodes(client *Client, input string)
 	for path, k := range cmd.decode {
 		var secret *api.Secret
 		if secret, err = client.Logical().Read(path); err != nil {
-			return
+			return "", err
 		}
 		if secret == nil || secret.Data == nil {
 			return "", fmt.Errorf("decode %s: not found", path)
@@ -157,7 +157,7 @@ func (cmd *TemplateCommand) executeTemplateSecrets(client *Client, input string)
 	for path, kv := range cmd.lookup {
 		var secret *api.Secret
 		if secret, err = client.Logical().Read(strings.TrimLeft(path, "/")); err != nil {
-			return
+			return "", err
 		}
 		if secret == nil {
 			return "", fmt.Errorf("secret %s: not found", path)
@@ -185,7 +185,7 @@ func (cmd *TemplateCommand) executeTemplateNested(client *Client, input string) 
 	for path, kv := range cmd.lookup {
 		var secret *api.Secret
 		if secret, err = client.Logical().Read(strings.TrimLeft(path, "/")); err != nil {
-			return
+			return "", err
 		}
 		if secret == nil {
 			return "", fmt.Errorf("nested %s: not found", path)

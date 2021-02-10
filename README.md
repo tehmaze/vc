@@ -115,9 +115,11 @@ text/template, see https://golang.org/pkg/text/template/
 
     Options:
       -m string
-        	output mode (default 0600)
+            output mode (default 0600)
       -o string
-        	output (default: stdout)
+            output (default: stdout)
+      -t string
+            templating mode: html or text (default html)
 
 
 The render engine will first evaluate the template file and retrieve all

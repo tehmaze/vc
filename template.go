@@ -6,12 +6,13 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"html/template"
+	htmlTemplate "html/template"
 	"io"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
+	textTemplate "text/template"
 
 	"github.com/hashicorp/vault/api"
 	"github.com/mitchellh/cli"
@@ -20,10 +21,15 @@ import (
 // TemplateCommand renders (multiple) secret(s) into a templated file.
 type TemplateCommand struct {
 	baseCommand
-	fs     *flag.FlagSet
-	mod    string
-	lookup map[string]map[string]string
-	decode map[string]string
+	fs             *flag.FlagSet
+	mod            string
+	templatingMode string
+	lookup         map[string]map[string]string
+	decode         map[string]string
+}
+
+type template interface {
+	Execute(wr io.Writer, data interface{}) error
 }
 
 func (cmd *TemplateCommand) Help() string {
@@ -49,7 +55,7 @@ func (cmd *TemplateCommand) Run(args []string) int {
 		cmd.mode = os.FileMode(mode)
 	}
 
-	t, err := cmd.parseTemplate(args[0])
+	t, err := cmd.parseTemplate(args[0], cmd.templatingMode)
 	if err != nil {
 		cmd.ui.Error("error: " + err.Error())
 		return 1
@@ -69,21 +75,31 @@ func (cmd *TemplateCommand) Run(args []string) int {
 	return 0
 }
 
-func (cmd *TemplateCommand) parseTemplate(name string) (*template.Template, error) {
+func (cmd *TemplateCommand) parseTemplate(name string, templatingMode string) (template, error) {
 	b, err := ioutil.ReadFile(name)
 	if err != nil {
 		return nil, err
 	}
 
-	// Parse template, add a function "secret"
-	return template.New(name).Funcs(template.FuncMap{
-		"decode": cmd.templateDecode,
-		"secret": cmd.templateSecret,
-		"nested": cmd.templateNested,
-	}).Parse(string(b))
+	switch templatingMode {
+	case "text":
+		return textTemplate.New(name).Funcs(textTemplate.FuncMap{
+			"decode": cmd.templateDecode,
+			"secret": cmd.templateSecret,
+			"nested": cmd.templateNested,
+		}).Parse(string(b))
+	case "html":
+		return htmlTemplate.New(name).Funcs(htmlTemplate.FuncMap{
+			"decode": cmd.templateDecode,
+			"secret": cmd.templateSecret,
+			"nested": cmd.templateNested,
+		}).Parse(string(b))
+	default:
+		return nil, fmt.Errorf("unknown templating mode %s", templatingMode)
+	}
 }
 
-func (cmd *TemplateCommand) executeTemplate(t *template.Template) (content string, err error) {
+func (cmd *TemplateCommand) executeTemplate(t template) (content string, err error) {
 	// Prepare lookup tables
 	cmd.lookup = make(map[string]map[string]string)
 	cmd.decode = make(map[string]string)
@@ -280,6 +296,7 @@ func TemplateCommandFactory(ui cli.Ui) cli.CommandFactory {
 		cmd.fs = flag.NewFlagSet("template", flag.ContinueOnError)
 		cmd.fs.StringVar(&cmd.mod, "m", "0600", "output mode")
 		cmd.fs.StringVar(&cmd.out, "o", "", "output (default: stdout)")
+		cmd.fs.StringVar(&cmd.templatingMode, "t", "html", "templating mode: html or text")
 		cmd.fs.Usage = func() {
 			fmt.Print(cmd.Help())
 		}

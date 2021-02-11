@@ -119,7 +119,9 @@ func (cmd *baseCommand) Close() error {
 // if the caller calls .Close(), the file gets renamed to cmd.out
 func (cmd *baseCommand) writerOpen() error {
 	if cmd.out == "" || cmd.out == "-" {
-		cmd.w = os.Stdout
+		if cmd.w == nil {
+			cmd.w = os.Stdout
+		}
 		return nil
 	}
 

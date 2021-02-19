@@ -297,6 +297,8 @@ func TemplateCommandFactory(ui cli.Ui) cli.CommandFactory {
 		cmd.fs.StringVar(&cmd.mod, "m", "0600", "output mode")
 		cmd.fs.StringVar(&cmd.out, "o", "", "output (default: stdout)")
 		cmd.fs.StringVar(&cmd.templatingMode, "t", "html", "templating mode: html or text")
+		cmd.fs.StringVar(&cmd.user, "u", "", "output file user name or numeric user id (default: current user)")
+		cmd.fs.StringVar(&cmd.group, "g", "", "output file group name or numeric group id (default: current group)")
 		cmd.fs.Usage = func() {
 			fmt.Print(cmd.Help())
 		}

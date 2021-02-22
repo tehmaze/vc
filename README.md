@@ -30,12 +30,17 @@ Show the contents of a secret.
     Usage: vc cat [<options>] <secret path>
 
     Options:
-     -k string
-       	key (default __TYPE__)
-     -m string
-       	output mode (default 0600)
-     -o string
-       	output (default: stdout)
+      -i    ingore missing key
+      -k string
+            key
+      -m string
+            output mode (default 0600)
+      -o string
+            output (default stdout)
+      -u string
+            output file user name or numeric user id (default: current user)
+      -g string
+            output file group name or numeric group id (default: current group)
 
 
 ## Command edit
@@ -120,6 +125,10 @@ text/template, see https://golang.org/pkg/text/template/
             output (default: stdout)
       -t string
             templating mode: html or text (default html)
+      -u string
+            output file user name or numeric user id (default: current user)
+      -g string
+            output file group name or numeric group id (default: current group)
 
 
 The render engine will first evaluate the template file and retrieve all

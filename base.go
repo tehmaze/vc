@@ -8,8 +8,10 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/user"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/vault/api"
@@ -54,10 +56,12 @@ type baseCommand struct {
 	ui cli.Ui
 	c  *Client
 
-	mode os.FileMode
-	out  string
-	tmp  *os.File
-	w    io.WriteCloser
+	mode  os.FileMode
+	out   string
+	user  string
+	group string
+	tmp   *os.File
+	w     io.WriteCloser
 }
 
 func (cmd *baseCommand) Client() (*Client, error) {
@@ -132,10 +136,71 @@ func (cmd *baseCommand) writerOpen() error {
 	if cmd.tmp, err = ioutil.TempFile(dir, base); err == nil {
 		Debugf("writing to %s\n", cmd.tmp.Name())
 		cmd.w = cmd.tmp
-		err = cmd.tmp.Chmod(cmd.mode)
+
+		uid, err := cmd.getUserId()
+		if err != nil {
+			return err
+		}
+
+		gid, err := cmd.getGroupId()
+		if err != nil {
+			return err
+		}
+
+		if err = cmd.tmp.Chmod(cmd.mode); err != nil {
+			return err
+		}
+
+		if uid != -1 || gid != -1 {
+			if err = cmd.tmp.Chown(uid, gid); err != nil {
+				return err
+			}
+		}
 	}
 
 	return err
+}
+
+func (cmd *baseCommand) getGroupId() (int, error) {
+	if cmd.group == "" {
+		return -1, nil
+	}
+
+	if gid, err := strconv.Atoi(cmd.group); err == nil {
+		return gid, nil
+	}
+
+	grp, err := user.LookupGroup(cmd.group)
+	if err != nil {
+		return -1, err
+	}
+
+	if gid, err := strconv.Atoi(grp.Gid); err != nil {
+		return -1, err
+	} else {
+		return gid, nil
+	}
+}
+
+func (cmd *baseCommand) getUserId() (int, error) {
+	if cmd.user == "" {
+		return -1, nil
+	}
+
+	if uid, err := strconv.Atoi(cmd.user); err == nil {
+		return uid, nil
+	}
+
+	usr, err := user.Lookup(cmd.user)
+	if err != nil {
+		return -1, err
+	}
+
+	if uid, err := strconv.Atoi(usr.Uid); err != nil {
+		return -1, err
+	} else {
+		return uid, nil
+	}
 }
 
 func (cmd *baseCommand) Write(p []byte) (int, error) {
